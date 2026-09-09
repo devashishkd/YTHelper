@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --color-yt-red: #ff4545;
+  --color-accent: #6387ff;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+@layer base {
+  body {
+    background-color: #080b14;
+    background-image:
+      linear-gradient(rgba(99, 135, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 135, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-attachment: fixed;
+    color: theme('color.slate.200');
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: theme('color.slate.950'); }
+  ::-webkit-scrollbar-thumb { background: theme('color.slate.800'); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: theme('color.accent'); }
+}
+
+@layer utilities {
+  .animate-blink {
+    animation: blink 0.7s step-end infinite;
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Base styles for markdown content inside chat bubbles */
+.markdown-content p { margin-bottom: 8px; }
+.markdown-content p:last-child { margin-bottom: 0; }
+.markdown-content ul, .markdown-content ol { padding-left: 20px; margin-bottom: 8px; list-style-type: disc; }
+.markdown-content li { margin-bottom: 4px; }
+.markdown-content strong { font-weight: 700; color: white; }
+.markdown-content code {
+  font-family: theme('font.mono');
+  font-size: 0.82em;
+  background-color: rgba(99, 135, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: theme('color.accent');
+}
