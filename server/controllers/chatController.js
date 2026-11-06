@@ -116,12 +116,13 @@ export const chat = async (req, res) => {
       sendEvent('token', { token: chunk });
     }
 
-    // ─── Send sources ──────────────────────────────────────────────────
+    // ─── Send sources (Feature 2: Clip Finder — include deep-link URLs) ──
     const sources = gradedChunks.map((c) => ({
       text: c.text.substring(0, 200) + (c.text.length > 200 ? '...' : ''),
       timestamp: c.timestamp,
       startTime: c.startTime,
       score: c.score,
+      clipUrl: `https://youtu.be/${videoId}?t=${c.startTime}`,
     }));
     sendEvent('sources', { sources });
 

@@ -39,11 +39,12 @@ export const generatorPrompt = ChatPromptTemplate.fromMessages([
 RULES:
 1. Answer ONLY based on the provided transcript chunks. Do not hallucinate or add information not in the transcript.
 2. When citing specific moments, ALWAYS mention the timestamp (e.g., "At 05:32, the speaker said...").
-3. If the answer includes a list of topics or timestamps, format them as a clean bullet list.
-4. If you cannot find the answer in the provided chunks, say so honestly.
-5. Keep answers concise and focused. Use markdown for formatting.
+3. Each chunk includes a clip URL — when referencing a moment, append it as a markdown link: [▶ Jump to 05:32](clip_url).
+4. If the answer includes a list of topics or timestamps, format them as a clean bullet list.
+5. If you cannot find the answer in the provided chunks, say so honestly.
+6. Keep answers concise and focused. Use markdown for formatting.
 
-Video context chunks (with timestamps):
+Video context chunks (with timestamps and clip URLs):
 {context}
 
 Chat history:

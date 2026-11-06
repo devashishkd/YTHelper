@@ -1,6 +1,10 @@
 import { ChatGroq } from '@langchain/groq';
-import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 import { queryAnalyzerPrompt } from '../prompts/index.js';
+
+const QueryTypeSchema = z.object({
+  queryType: z.enum(['factual', 'timestamp', 'topic', 'summary', 'general']),
+});
 
 const getLLM = () =>
   new ChatGroq({
@@ -13,14 +17,15 @@ const getLLM = () =>
 /**
  * LangGraph Node: Query Analyzer
  * Classifies the user's question type: factual | timestamp | topic | summary | general
+ * Uses Zod schema + withStructuredOutput to enforce valid enum values.
  */
 export const queryAnalyzerNode = async (state) => {
   const { question } = state;
 
   try {
-    const chain = queryAnalyzerPrompt.pipe(getLLM()).pipe(new JsonOutputParser());
-    const result = await chain.invoke({ question });
-    const queryType = result?.queryType || 'general';
+    const llm = getLLM().withStructuredOutput(QueryTypeSchema);
+    const result = await queryAnalyzerPrompt.pipe(llm).invoke({ question });
+    const queryType = result.queryType;
     console.log(`[QueryAnalyzer] Type: ${queryType} | Q: "${question}"`);
     return { queryType };
   } catch (err) {

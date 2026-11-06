@@ -16,12 +16,13 @@ export const getGeneratorLLM = () =>
 
 /**
  * Formats chunks into a readable context string for the prompt.
+ * Includes clip URL for Feature 2 (Clip Finder).
  */
 const formatContext = (chunks) =>
   chunks
     .map(
       (c, i) =>
-        `[Source ${i + 1} | Timestamp: ${c.timestamp}]\n${c.text}`
+        `[Source ${i + 1} | Timestamp: ${c.timestamp}${c.clipUrl ? ` | Clip: ${c.clipUrl}` : ''}]\n${c.text}`
     )
     .join('\n\n---\n\n');
 

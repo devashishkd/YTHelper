@@ -15,6 +15,7 @@ import { limiter } from './middleware/rateLimiter.js';
 import videoRoutes from './routes/videoRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
+import featuresRoutes from './routes/featuresRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.use(limiter);
 app.use('/api/videos', videoRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/features', featuresRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

@@ -1,6 +1,10 @@
 import { ChatGroq } from '@langchain/groq';
-import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 import { hallucinationPrompt } from '../prompts/index.js';
+
+const GroundedSchema = z.object({
+  grounded: z.enum(['yes', 'no']),
+});
 
 const getLLM = () =>
   new ChatGroq({
@@ -13,15 +17,16 @@ const getLLM = () =>
 /**
  * LangGraph Node: Hallucination Checker
  * Verifies the generated answer is grounded in retrieved context.
+ * Uses Zod schema + withStructuredOutput to enforce { grounded: 'yes' | 'no' }.
  * Sets state.isGrounded = true/false.
  */
 export const hallucinationCheckerNode = async (state) => {
   const { answer, context } = state;
 
   try {
-    const chain = hallucinationPrompt.pipe(getLLM()).pipe(new JsonOutputParser());
-    const result = await chain.invoke({ context, answer });
-    const isGrounded = result?.grounded === 'yes';
+    const llm = getLLM().withStructuredOutput(GroundedSchema);
+    const result = await hallucinationPrompt.pipe(llm).invoke({ context, answer });
+    const isGrounded = result.grounded === 'yes';
     console.log(`[HallucinationChecker] Grounded: ${isGrounded}`);
     return { isGrounded };
   } catch (err) {
