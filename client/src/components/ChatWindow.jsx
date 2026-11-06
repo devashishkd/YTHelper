@@ -7,7 +7,7 @@ const PROMPT_CHIPS = [
   '📋 What topics are covered?',
   '🕐 What happens at the 5 minute mark?',
   '💡 What are the key takeaways?',
-  '🎯 Who is the target audience?',
+  '🌐 इस वीडियो का मुख्य विषय क्या है?',
 ];
 
 const MessageBubble = ({ message }) => (

@@ -1,12 +1,9 @@
 /**
  * Central LLM configuration.
- * Change the model here to update it across the entire app.
- *
- * Available Groq models (pick one):
- *   - 'llama-3.1-70b-versatile'   (best quality, widely available)
- *   - 'llama3-70b-8192'           (stable, fast)
- *   - 'llama-3.1-8b-instant'      (fastest, lower quality)
- *   - 'mixtral-8x7b-32768'        (good for structured output)
+ * Model options from Groq Free Plan:
+ *   - 'openai/gpt-oss-120b'  (Recommended: best reasoning & quality)
+ *   - 'qwen/qwen3.8-27b'     (Fast, excellent performance)
+ *   - 'openai/gpt-oss-20b'   (Lightweight & fast)
  */
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 

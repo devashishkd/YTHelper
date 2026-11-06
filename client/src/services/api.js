@@ -19,4 +19,10 @@ export const sessionApi = {
   delete: (sessionId) => api.delete(`/sessions/${sessionId}`),
 };
 
+export const featuresApi = {
+  multiVideoChat: (videoIds, question) => api.post('/features/multi-video-chat', { videoIds, question }),
+  getQuiz: (videoId, count = 5) => api.post('/features/quiz', { videoId, count }),
+  multilingualChat: (videoId, question) => api.post('/features/multilingual-chat', { videoId, question }),
+};
+
 export default api;

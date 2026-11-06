@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import ChatWindow from '../components/ChatWindow';
 import SourceViewer from '../components/SourceViewer';
+import QuizModal from '../components/QuizModal';
+import StudyNotesModal from '../components/StudyNotesModal';
 import { useChat } from '../hooks/useChat';
 import { videoApi } from '../services/api';
 
@@ -13,6 +15,8 @@ export default function Chat() {
   const [video, setVideo]   = useState(location.state?.video || null);
   const [input, setInput]   = useState('');
   const [loading, setLoading] = useState(!location.state?.video);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
 
   const { messages, sources, isStreaming, statusText, sendMessage, clearChat } = useChat(videoId);
 
@@ -73,14 +77,30 @@ export default function Chat() {
               {video.url}
             </a>
           </div>
-          <button
-            id="clear-chat-btn"
-            className="px-3.5 py-1.5 text-sm font-semibold text-slate-400 border border-white/10 rounded-md hover:text-slate-200 hover:border-accent/40 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={clearChat}
-            disabled={isStreaming || messages.length === 0}
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowQuiz(true)}
+              className="px-3 py-1.5 text-xs font-semibold text-accent bg-accent/10 border border-accent/30 rounded-md hover:bg-accent/20 transition-all flex items-center gap-1.5"
+              title="Generate a 5-question multiple choice quiz on this video"
+            >
+              🎯 Quiz
+            </button>
+            <button
+              onClick={() => setShowNotes(true)}
+              className="px-3 py-1.5 text-xs font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-md hover:bg-indigo-500/20 transition-all flex items-center gap-1.5"
+              title="Generate comprehensive study notes from this video"
+            >
+              📚 Study Notes
+            </button>
+            <button
+              id="clear-chat-btn"
+              className="px-3 py-1.5 text-xs font-semibold text-slate-400 border border-white/10 rounded-md hover:text-slate-200 hover:border-accent/40 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={clearChat}
+              disabled={isStreaming || messages.length === 0}
+            >
+              Clear
+            </button>
+          </div>
         </header>
 
         {/* Chat window */}
@@ -96,6 +116,23 @@ export default function Chat() {
 
       {/* Source Panel */}
       <SourceViewer sources={sources} />
+
+      {/* Feature Modals */}
+      {showQuiz && (
+        <QuizModal
+          videoId={videoId}
+          videoTitle={video.title}
+          onClose={() => setShowQuiz(false)}
+        />
+      )}
+
+      {showNotes && (
+        <StudyNotesModal
+          videoId={videoId}
+          videoTitle={video.title}
+          onClose={() => setShowNotes(false)}
+        />
+      )}
     </div>
   );
 }

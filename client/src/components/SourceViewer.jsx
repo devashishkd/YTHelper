@@ -32,8 +32,21 @@ export default function SourceViewer({ sources }) {
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
         {sources.map((src, i) => (
           <div key={i} className="bg-slate-900 border border-white/10 rounded-xl p-3.5 transition-colors hover:border-accent/40" id={`source-card-${i}`}>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-2 bg-accent/10 border border-accent/20 rounded-full text-xs font-semibold text-accent font-mono">
-              ⏱ {src.timestamp || formatTime(src.startTime)}
+            <div className="flex items-center justify-between mb-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 border border-accent/20 rounded-full text-xs font-semibold text-accent font-mono">
+                ⏱ {src.timestamp || formatTime(src.startTime)}
+              </span>
+              {src.clipUrl && (
+                <a
+                  href={src.clipUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-yt-red bg-yt-red/10 hover:bg-yt-red/20 px-2 py-0.5 rounded border border-yt-red/30 transition-all"
+                  title="Jump directly to this moment on YouTube"
+                >
+                  ▶ Play Clip
+                </a>
+              )}
             </div>
             <p className="text-xs text-slate-400 leading-relaxed line-clamp-4">{src.text}</p>
             {src.score !== undefined && (

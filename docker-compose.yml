@@ -7,7 +7,7 @@ services:
       - "5000:5000"
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - GROQ_MODEL=${GROQ_MODEL:-llama-3.1-70b-versatile}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
       - NOMIC_API_KEY=${NOMIC_API_KEY}
       - MONGODB_URI=mongodb://mongo:27017/ythelper
       - CHROMA_URL=http://chroma:8000
