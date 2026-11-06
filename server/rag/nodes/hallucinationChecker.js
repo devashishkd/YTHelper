@@ -1,6 +1,7 @@
 import { ChatGroq } from '@langchain/groq';
 import { z } from 'zod';
 import { hallucinationPrompt } from '../prompts/index.js';
+import { GROQ_MODEL } from '../../config/llm.js';
 
 const GroundedSchema = z.object({
   grounded: z.enum(['yes', 'no']),
@@ -9,7 +10,7 @@ const GroundedSchema = z.object({
 const getLLM = () =>
   new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     temperature: 0,
     maxTokens: 50,
   });

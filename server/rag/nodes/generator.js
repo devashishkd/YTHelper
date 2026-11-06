@@ -1,6 +1,7 @@
 import { ChatGroq } from '@langchain/groq';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { generatorPrompt } from '../prompts/index.js';
+import { GROQ_MODEL } from '../../config/llm.js';
 
 /**
  * Returns a streaming Groq LLM instance for answer generation.
@@ -8,7 +9,7 @@ import { generatorPrompt } from '../prompts/index.js';
 export const getGeneratorLLM = () =>
   new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     temperature: 0.3,
     maxTokens: 1024,
     streaming: true,

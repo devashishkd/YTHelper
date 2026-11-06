@@ -13,12 +13,13 @@ import { retrieveChunks } from '../services/vectorStoreService.js';
 import { formatContext } from '../rag/nodes/generator.js';
 import { queryAnalyzerNode } from '../rag/nodes/queryAnalyzer.js';
 import { graderNode } from '../rag/nodes/grader.js';
+import { GROQ_MODEL } from '../config/llm.js';
 
 // ─── Shared LLM factory ───────────────────────────────────────────────
 const getLLM = (temperature = 0.3, maxTokens = 2048) =>
   new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     temperature,
     maxTokens,
   });
