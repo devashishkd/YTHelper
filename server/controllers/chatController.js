@@ -6,6 +6,8 @@ import { getStreamingChain, formatContext } from '../rag/nodes/generator.js';
 import { queryAnalyzerNode } from '../rag/nodes/queryAnalyzer.js';
 import { retrieverNode } from '../rag/nodes/retriever.js';
 import { graderNode } from '../rag/nodes/grader.js';
+import { hallucinationCheckerNode } from '../rag/nodes/hallucinationChecker.js';
+import { getClipUrl } from '../services/transcriptService.js';
 
 /**
  * POST /api/chat
@@ -116,13 +118,26 @@ export const chat = async (req, res) => {
       sendEvent('token', { token: chunk });
     }
 
-    // ─── Send sources (Feature 2: Clip Finder — include deep-link URLs) ──
+    // ─── Verify Grounding / Hallucination Check ────────────────────────
+    sendEvent('status', { message: 'Verifying answer against transcript...' });
+    const checkResult = await hallucinationCheckerNode({
+      answer: fullAnswer,
+      context,
+    });
+
+    sendEvent('verification', {
+      isGrounded: checkResult.isGrounded,
+      verificationStatus: checkResult.verificationStatus,
+      warning: checkResult.warning,
+    });
+
+    // ─── Send sources (Feature 2: Clip Finder — include deep-link URLs with pre-roll) ──
     const sources = gradedChunks.map((c) => ({
       text: c.text.substring(0, 200) + (c.text.length > 200 ? '...' : ''),
       timestamp: c.timestamp,
       startTime: c.startTime,
       score: c.score,
-      clipUrl: `https://youtu.be/${videoId}?t=${c.startTime}`,
+      clipUrl: getClipUrl(videoId, c.startTime, 2),
     }));
     sendEvent('sources', { sources });
 
@@ -134,6 +149,9 @@ export const chat = async (req, res) => {
       content: fullAnswer,
       sources,
       queryType,
+      isGrounded: checkResult.isGrounded,
+      verificationStatus: checkResult.verificationStatus,
+      warning: checkResult.warning,
     });
 
     // ─── Update session ────────────────────────────────────────────────

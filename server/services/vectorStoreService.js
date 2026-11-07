@@ -18,33 +18,24 @@ export const getCollectionName = (videoId) => `video_${videoId}`;
  * @param {Array} mergedSegments - [{ text, startTime, endTime, timestamp }]
  * @returns {number} number of chunks stored
  */
-export const ingestToVectorStore = async (videoId, mergedSegments) => {
+export const ingestToVectorStore = async (videoId, chunks) => {
   const collectionName = getCollectionName(videoId);
   const embeddings = getEmbeddings();
 
-  // Split merged segments into overlapping chunks for better retrieval
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 1000,
-    chunkOverlap: 200,
-    separators: ['\n\n', '\n', '. ', '! ', '? ', ' '],
-  });
-
-  const docs = [];
-  for (const seg of mergedSegments) {
-    const splits = await splitter.createDocuments(
-      [seg.text],
-      [
-        {
+  // Create documents directly from time-aware chunks with preserved boundary timestamps
+  const docs = chunks.map(
+    (chunk) =>
+      new Document({
+        pageContent: chunk.text,
+        metadata: {
           videoId,
-          startTime: seg.startTime,
-          endTime: seg.endTime,
-          timestamp: seg.timestamp,
-          source: `Timestamp: ${seg.timestamp}`,
+          startTime: chunk.startTime,
+          endTime: chunk.endTime,
+          timestamp: chunk.timestamp,
+          source: `Timestamp: ${chunk.timestamp}`,
         },
-      ]
-    );
-    docs.push(...splits);
-  }
+      })
+  );
 
   // Store in ChromaDB (persistent to disk)
   const vectorStore = await Chroma.fromDocuments(docs, embeddings, {
@@ -53,7 +44,7 @@ export const ingestToVectorStore = async (videoId, mergedSegments) => {
     collectionMetadata: { 'hnsw:space': 'cosine' },
   });
 
-  console.log(`✅ Stored ${docs.length} chunks in ChromaDB collection: ${collectionName}`);
+  console.log(`✅ Stored ${docs.length} time-aligned chunks in ChromaDB collection: ${collectionName}`);
   return docs.length;
 };
 

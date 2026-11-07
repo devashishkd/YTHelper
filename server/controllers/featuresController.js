@@ -10,6 +10,7 @@ import {
   languageDetectPrompt,
 } from '../rag/prompts/featuresPrompts.js';
 import { retrieveChunks } from '../services/vectorStoreService.js';
+import { getClipUrl } from '../services/transcriptService.js';
 import { formatContext } from '../rag/nodes/generator.js';
 import { queryAnalyzerNode } from '../rag/nodes/queryAnalyzer.js';
 import { graderNode } from '../rag/nodes/grader.js';
@@ -98,7 +99,7 @@ export const multiVideoChat = async (req, res) => {
           ...c,
           videoLabel: `Video ${idx + 1}: ${video.title || video.videoId}`,
           videoId: video.videoId,
-          clipUrl: `https://youtu.be/${video.videoId}?t=${c.startTime}`,
+          clipUrl: getClipUrl(video.videoId, c.startTime, 2),
         }));
       })
     );
@@ -286,7 +287,7 @@ export const multilingualChat = async (req, res) => {
     const sources = finalChunks.map((c) => ({
       timestamp: c.timestamp,
       startTime: c.startTime,
-      clipUrl: `https://youtu.be/${videoId}?t=${c.startTime}`,
+      clipUrl: getClipUrl(videoId, c.startTime, 2),
       text: c.text.substring(0, 200) + (c.text.length > 200 ? '...' : ''),
       score: c.score,
     }));

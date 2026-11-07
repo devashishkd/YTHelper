@@ -24,9 +24,11 @@ const GraphState = Annotation.Root({
   retries:        Annotation({ reducer: (a, b) => b ?? a, default: () => 0 }),
 
   // Output
-  answer:         Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
-  context:        Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
-  isGrounded:     Annotation({ reducer: (a, b) => b ?? a, default: () => false }),
+  answer:             Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
+  context:            Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
+  isGrounded:         Annotation({ reducer: (a, b) => b ?? a, default: () => false }),
+  verificationStatus: Annotation({ reducer: (a, b) => b ?? a, default: () => 'unverified' }),
+  warning:            Annotation({ reducer: (a, b) => b ?? a, default: () => null }),
 });
 
 // ─── Conditional Edge: After Grading ──────────────────────────────────
@@ -117,6 +119,8 @@ export const runRagPipeline = async ({ question, videoId, chatHistory = [] }) =>
     answer: '',
     context: '',
     isGrounded: false,
+    verificationStatus: 'unverified',
+    warning: null,
   });
 
   return {
@@ -124,5 +128,8 @@ export const runRagPipeline = async ({ question, videoId, chatHistory = [] }) =>
     gradedChunks: result.gradedChunks,
     queryType: result.queryType,
     retries: result.retries,
+    isGrounded: result.isGrounded,
+    verificationStatus: result.verificationStatus,
+    warning: result.warning,
   };
 };

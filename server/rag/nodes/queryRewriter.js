@@ -30,6 +30,8 @@ export const queryRewriterNode = async (state) => {
       gradedChunks: [],
       answer: '',
       isGrounded: false,
+      verificationStatus: 'unverified',
+      warning: null,
     };
   } catch (err) {
     console.warn('[QueryRewriter] Rewrite failed, using original:', err.message);

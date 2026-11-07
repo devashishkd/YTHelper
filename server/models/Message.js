@@ -29,6 +29,13 @@ const messageSchema = new mongoose.Schema(
       default: 'general',
     },
     retries: { type: Number, default: 0 },
+    isGrounded: { type: Boolean, default: true },
+    verificationStatus: {
+      type: String,
+      enum: ['verified', 'unverified', 'degraded'],
+      default: 'unverified',
+    },
+    warning: { type: String, default: null },
   },
   { timestamps: true }
 );

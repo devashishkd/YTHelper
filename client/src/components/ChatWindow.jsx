@@ -31,6 +31,11 @@ const MessageBubble = ({ message }) => (
             {message.content || ' '}
           </ReactMarkdown>
           {message.streaming && <span className="inline-block w-0.5 h-[1em] bg-accent ml-0.5 align-text-bottom animate-blink" />}
+          {message.warning && (
+            <div className="mt-2.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+              <span>{message.warning}</span>
+            </div>
+          )}
         </>
       ) : (
         <span>{message.content}</span>

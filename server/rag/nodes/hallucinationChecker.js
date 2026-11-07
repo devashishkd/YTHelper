@@ -29,10 +29,20 @@ export const hallucinationCheckerNode = async (state) => {
     const result = await hallucinationPrompt.pipe(llm).invoke({ context, answer });
     const isGrounded = result.grounded === 'yes';
     console.log(`[HallucinationChecker] Grounded: ${isGrounded}`);
-    return { isGrounded };
+    return {
+      isGrounded,
+      verificationStatus: isGrounded ? 'verified' : 'unverified',
+      warning: isGrounded
+        ? null
+        : '⚠️ This answer may contain details not fully grounded in the video transcript.',
+    };
   } catch (err) {
-    // Fail safe — assume grounded if checker errors out
-    console.warn('[HallucinationChecker] Check failed, assuming grounded:', err.message);
-    return { isGrounded: true };
+    // Graceful degradation: fail-open with an explicit degradation notice
+    console.warn('[HallucinationChecker] Check failed, failing open with warning:', err.message);
+    return {
+      isGrounded: true,
+      verificationStatus: 'degraded',
+      warning: '⚠️ Transcript verification could not be completed. Please cross-reference with video timestamps.',
+    };
   }
 };

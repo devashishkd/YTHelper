@@ -102,24 +102,59 @@ export const getTranscriptDuration = (transcript) => {
 };
 
 /**
- * Merges small transcript segments into larger text blocks for better chunking.
- * Groups segments until they reach targetLength characters.
+ * Generates a YouTube deep-link URL with pre-roll padding.
+ * @param {string} videoId
+ * @param {number} startTime - start time in seconds
+ * @param {number} preRoll - seconds before speech start to begin playback (default 2s)
  */
-export const mergeTranscriptSegments = (transcript, targetLength = 800) => {
-  const merged = [];
-  let current = { text: '', startTime: 0, endTime: 0, timestamp: '' };
+export const getClipUrl = (videoId, startTime = 0, preRoll = 2) => {
+  const padded = Math.max(0, Math.floor(startTime) - preRoll);
+  return `https://youtu.be/${videoId}?t=${padded}`;
+};
 
-  for (const seg of transcript) {
-    if (current.text === '') {
-      current = { ...seg };
-    } else if (current.text.length + seg.text.length < targetLength) {
-      current.text += ' ' + seg.text;
-      current.endTime = seg.endTime;
-    } else {
-      merged.push({ ...current });
-      current = { ...seg };
+/**
+ * Creates overlapping chunks of transcript segments while preserving exact
+ * boundary timestamps (startTime, endTime, timestamp).
+ * Groups complete subtitle spans up to targetLength characters with segment-level overlap.
+ *
+ * @param {Array} transcript - [{ text, startTime, endTime, timestamp }]
+ * @param {number} targetLength - target max characters per chunk (default 800)
+ * @param {number} overlapSegments - number of subtitle spans to overlap (default 2)
+ * @returns {Array} chunks - [{ text, startTime, endTime, timestamp }]
+ */
+export const mergeTranscriptSegments = (transcript, targetLength = 800, overlapSegments = 2) => {
+  if (!transcript || transcript.length === 0) return [];
+
+  const chunks = [];
+  let i = 0;
+
+  while (i < transcript.length) {
+    let charCount = 0;
+    let j = i;
+    const currentSlice = [];
+
+    while (j < transcript.length && (charCount + transcript[j].text.length <= targetLength || currentSlice.length === 0)) {
+      currentSlice.push(transcript[j]);
+      charCount += transcript[j].text.length + 1;
+      j++;
     }
+
+    const firstSeg = currentSlice[0];
+    const lastSeg = currentSlice[currentSlice.length - 1];
+
+    chunks.push({
+      text: currentSlice.map((s) => s.text).join(' ').trim(),
+      startTime: firstSeg.startTime,
+      endTime: lastSeg.endTime,
+      timestamp: firstSeg.timestamp,
+    });
+
+    if (j >= transcript.length) break;
+
+    // Advance window with segment overlap (minimum 1 segment forward)
+    const step = Math.max(1, currentSlice.length - overlapSegments);
+    i += step;
   }
-  if (current.text) merged.push(current);
-  return merged;
+
+  return chunks;
 };

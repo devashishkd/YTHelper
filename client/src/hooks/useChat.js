@@ -95,6 +95,20 @@ export const useChat = (videoId) => {
             } else if (event === 'sources') {
               setSources(data.sources || []);
 
+            } else if (event === 'verification') {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        isGrounded: data.isGrounded,
+                        verificationStatus: data.verificationStatus,
+                        warning: data.warning,
+                      }
+                    : m
+                )
+              );
+
             } else if (event === 'done') {
               if (data.sessionId) setSessionId(data.sessionId);
               setMessages((prev) =>
