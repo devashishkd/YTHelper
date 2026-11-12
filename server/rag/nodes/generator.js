@@ -34,7 +34,7 @@ const formatContext = (chunks) =>
  * Streaming is handled separately in the controller.
  */
 export const generatorNode = async (state) => {
-  const { question, gradedChunks, chatHistory = [] } = state;
+  const { question, gradedChunks, chatHistory = [], longTermContext = '' } = state;
 
   const context = formatContext(gradedChunks);
   const historyText = chatHistory
@@ -48,6 +48,7 @@ export const generatorNode = async (state) => {
     question,
     context,
     chatHistory: historyText || 'No prior conversation.',
+    longTermContext: longTermContext || 'No prior memory for this video.',
   });
 
   console.log(`[Generator] Answer generated (${answer.length} chars)`);

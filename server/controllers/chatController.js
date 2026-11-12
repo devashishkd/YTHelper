@@ -1,20 +1,22 @@
 import Video from '../models/Video.js';
 import Session from '../models/Session.js';
 import Message from '../models/Message.js';
-import { runRagPipeline } from '../rag/graph.js';
 import { getStreamingChain, formatContext } from '../rag/nodes/generator.js';
 import { queryAnalyzerNode } from '../rag/nodes/queryAnalyzer.js';
 import { retrieverNode } from '../rag/nodes/retriever.js';
 import { graderNode } from '../rag/nodes/grader.js';
 import { hallucinationCheckerNode } from '../rag/nodes/hallucinationChecker.js';
 import { getClipUrl } from '../services/transcriptService.js';
+import { readLongTermMemory, updateLongTermMemory } from '../memory/longTermMemory.js';
 
 /**
  * POST /api/chat
- * Runs the full LangGraph RAG pipeline and streams the answer via SSE.
+ * Runs the full RAG pipeline and streams the answer via SSE.
+ * Short-term memory  → LangGraph MemorySaver (thread_id = session._id)
+ * Long-term memory   → VideoMemory MongoDB document (injected as priming context)
  *
  * Request body: { videoId, question, sessionId? }
- * Response: SSE stream with events: token | sources | done | error
+ * Response: SSE stream with events: status | token | sources | verification | done | error
  */
 export const chat = async (req, res) => {
   const { videoId, question, sessionId } = req.body;
@@ -35,6 +37,7 @@ export const chat = async (req, res) => {
 
   // ─── Get or create session ─────────────────────────────────────────
   let session;
+  const isNewSession = !sessionId;
   if (sessionId) {
     session = await Session.findById(sessionId);
   }
@@ -46,7 +49,11 @@ export const chat = async (req, res) => {
     });
   }
 
-  // ─── Load recent chat history (last 6 messages) ────────────────────
+  const threadId = session._id.toString(); // LangGraph MemorySaver thread key
+
+  // ─── Load recent chat history from MongoDB (seed for first turn) ───
+  // MemorySaver handles subsequent turns natively via thread_id.
+  // We still load from MongoDB so history survives server restarts.
   const recentMessages = await Message.find({ sessionId: session._id })
     .sort({ createdAt: -1 })
     .limit(6)
@@ -55,6 +62,20 @@ export const chat = async (req, res) => {
     role: m.role,
     content: m.content,
   }));
+
+  // ─── Long-term memory: read prior video memory ─────────────────────
+  // Only inject on first turn of a new session to avoid stale priming mid-session.
+  let longTermContext = '';
+  if (isNewSession) {
+    const ltm = await readLongTermMemory(videoId);
+    if (ltm) {
+      const factsText = ltm.keyFacts.length > 0
+        ? `\nKey facts from prior sessions:\n${ltm.keyFacts.map((f) => `• ${f}`).join('\n')}`
+        : '';
+      longTermContext = `${ltm.summary}${factsText}`;
+      console.log(`[LongTermMemory] Injecting memory for video ${videoId} (${ltm.totalQuestions} prior questions)`);
+    }
+  }
 
   // ─── Save user message ─────────────────────────────────────────────
   await Message.create({
@@ -76,7 +97,7 @@ export const chat = async (req, res) => {
   };
 
   try {
-    // ─── Run RAG pipeline (non-streaming phases) ─────────────────────
+    // ─── Run pipeline nodes (non-streaming phases) ────────────────────
     sendEvent('status', { message: 'Analyzing question...' });
     const analyzerResult = await queryAnalyzerNode({ question, videoId, chatHistory });
     const queryType = analyzerResult.queryType;
@@ -92,7 +113,7 @@ export const chat = async (req, res) => {
 
     let gradedChunks = graderResult.gradedChunks;
 
-    // Fallback: if no chunks passed grading, use all retrieved chunks
+    // Fallback: if no chunks passed grading, use top retrieved chunks
     if (gradedChunks.length === 0) {
       gradedChunks = retrieverResult.retrievedChunks.slice(0, 4);
     }
@@ -110,6 +131,7 @@ export const chat = async (req, res) => {
       question,
       context,
       chatHistory: historyText || 'No prior conversation.',
+      longTermContext: longTermContext || 'No prior memory for this video.',
     });
 
     let fullAnswer = '';
@@ -118,12 +140,9 @@ export const chat = async (req, res) => {
       sendEvent('token', { token: chunk });
     }
 
-    // ─── Verify Grounding / Hallucination Check ────────────────────────
+    // ─── Hallucination check ──────────────────────────────────────────
     sendEvent('status', { message: 'Verifying answer against transcript...' });
-    const checkResult = await hallucinationCheckerNode({
-      answer: fullAnswer,
-      context,
-    });
+    const checkResult = await hallucinationCheckerNode({ answer: fullAnswer, context });
 
     sendEvent('verification', {
       isGrounded: checkResult.isGrounded,
@@ -131,7 +150,7 @@ export const chat = async (req, res) => {
       warning: checkResult.warning,
     });
 
-    // ─── Send sources (Feature 2: Clip Finder — include deep-link URLs with pre-roll) ──
+    // ─── Sources ──────────────────────────────────────────────────────
     const sources = gradedChunks.map((c) => ({
       text: c.text.substring(0, 200) + (c.text.length > 200 ? '...' : ''),
       timestamp: c.timestamp,
@@ -141,7 +160,7 @@ export const chat = async (req, res) => {
     }));
     sendEvent('sources', { sources });
 
-    // ─── Save assistant message ────────────────────────────────────────
+    // ─── Save assistant message to MongoDB ────────────────────────────
     await Message.create({
       sessionId: session._id,
       videoId,
@@ -160,8 +179,18 @@ export const chat = async (req, res) => {
       lastActive: new Date(),
     });
 
-    sendEvent('done', { sessionId: session._id.toString() });
+    sendEvent('done', {
+      sessionId: threadId,
+      memoryInjected: !!longTermContext,
+    });
     res.end();
+
+    // ─── Update long-term memory async (non-blocking) ─────────────────
+    // Fire-and-forget: runs after response is sent so it doesn't delay the user
+    updateLongTermMemory(videoId, video.title, session._id.toString()).catch((err) =>
+      console.warn('[LongTermMemory] Background update failed:', err.message)
+    );
+
   } catch (err) {
     console.error('[Chat] Error:', err.message);
     sendEvent('error', { message: err.message || 'An error occurred.' });

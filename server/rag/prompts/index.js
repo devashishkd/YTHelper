@@ -43,12 +43,16 @@ RULES:
 4. If the answer includes a list of topics or timestamps, format them as a clean bullet list.
 5. If you cannot find the answer in the provided chunks, say so honestly.
 6. Keep answers concise and focused. Use markdown for formatting.
+7. If long-term memory context is provided, use it to give richer, more personalised answers — but do NOT fabricate from it.
 
 Video context chunks (with timestamps and clip URLs):
 {context}
 
 Chat history:
-{chatHistory}`,
+{chatHistory}
+
+Long-term memory (topics this user has previously explored about this video):
+{longTermContext}`,
   ],
   ['human', '{question}'],
 ]);

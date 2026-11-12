@@ -7,21 +7,25 @@ import { graderNode } from './nodes/grader.js';
 import { generatorNode } from './nodes/generator.js';
 import { hallucinationCheckerNode } from './nodes/hallucinationChecker.js';
 import { queryRewriterNode } from './nodes/queryRewriter.js';
+import { getCheckpointer } from '../memory/checkpointer.js';
 
 const MAX_RETRIES = 3;
 
 // ─── State Annotation ─────────────────────────────────────────────────
 const GraphState = Annotation.Root({
   // Input
-  question:       Annotation({ reducer: (a, b) => b ?? a }),
-  videoId:        Annotation({ reducer: (a, b) => b ?? a }),
-  chatHistory:    Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
+  question:         Annotation({ reducer: (a, b) => b ?? a }),
+  videoId:          Annotation({ reducer: (a, b) => b ?? a }),
+  chatHistory:      Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
+
+  // Long-term memory context (injected at session start)
+  longTermContext:  Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
 
   // Processing
-  queryType:      Annotation({ reducer: (a, b) => b ?? a, default: () => 'general' }),
-  retrievedChunks:Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
-  gradedChunks:   Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
-  retries:        Annotation({ reducer: (a, b) => b ?? a, default: () => 0 }),
+  queryType:        Annotation({ reducer: (a, b) => b ?? a, default: () => 'general' }),
+  retrievedChunks:  Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
+  gradedChunks:     Annotation({ reducer: (a, b) => b ?? a, default: () => [] }),
+  retries:          Annotation({ reducer: (a, b) => b ?? a, default: () => 0 }),
 
   // Output
   answer:             Annotation({ reducer: (a, b) => b ?? a, default: () => '' }),
@@ -59,8 +63,9 @@ const shouldRewriteAfterHallucinationCheck = (state) => {
   return 'end';
 };
 
-// ─── Build Graph ──────────────────────────────────────────────────────
+// ─── Build Graph with MemorySaver Checkpointer ────────────────────────
 const buildGraph = () => {
+  const checkpointer = getCheckpointer();
   const graph = new StateGraph(GraphState);
 
   // Add nodes
@@ -91,7 +96,8 @@ const buildGraph = () => {
     rewrite: 'queryRewriter',
   });
 
-  return graph.compile();
+  // Compile with MemorySaver — enables short-term memory per thread_id
+  return graph.compile({ checkpointer });
 };
 
 // ─── Singleton compiled graph ──────────────────────────────────────────
@@ -103,25 +109,44 @@ export const getGraph = () => {
 
 /**
  * Runs the full RAG pipeline for a question about a video.
- * Returns { answer, gradedChunks, queryType, retries }
+ *
+ * @param {Object} opts
+ * @param {string} opts.question
+ * @param {string} opts.videoId
+ * @param {string} opts.threadId   — session._id.toString() for MemorySaver thread isolation
+ * @param {Array}  opts.chatHistory — recent messages from MongoDB (seed for first turn)
+ * @param {string} opts.longTermContext — summary from VideoMemory (long-term priming)
  */
-export const runRagPipeline = async ({ question, videoId, chatHistory = [] }) => {
+export const runRagPipeline = async ({
+  question,
+  videoId,
+  threadId,
+  chatHistory = [],
+  longTermContext = '',
+}) => {
   const graph = getGraph();
 
-  const result = await graph.invoke({
-    question,
-    videoId,
-    chatHistory,
-    queryType: 'general',
-    retrievedChunks: [],
-    gradedChunks: [],
-    retries: 0,
-    answer: '',
-    context: '',
-    isGrounded: false,
-    verificationStatus: 'unverified',
-    warning: null,
-  });
+  // thread_id scopes the MemorySaver checkpoint — each session is isolated
+  const config = threadId ? { configurable: { thread_id: threadId } } : undefined;
+
+  const result = await graph.invoke(
+    {
+      question,
+      videoId,
+      chatHistory,
+      longTermContext,
+      queryType: 'general',
+      retrievedChunks: [],
+      gradedChunks: [],
+      retries: 0,
+      answer: '',
+      context: '',
+      isGrounded: false,
+      verificationStatus: 'unverified',
+      warning: null,
+    },
+    config
+  );
 
   return {
     answer: result.answer,

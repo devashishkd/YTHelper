@@ -1,8 +1,16 @@
 import express from 'express';
 import Session from '../models/Session.js';
 import Message from '../models/Message.js';
+import VideoMemory from '../models/VideoMemory.js';
 
 const router = express.Router();
+
+// GET /api/sessions/memory/:videoId — get long-term memory for a video
+router.get('/memory/:videoId', async (req, res) => {
+  const mem = await VideoMemory.findOne({ videoId: req.params.videoId }).lean();
+  if (!mem) return res.json({ success: true, memory: null });
+  res.json({ success: true, memory: mem });
+});
 
 // GET /api/sessions/:videoId — get all sessions for a video
 router.get('/:videoId', async (req, res) => {
