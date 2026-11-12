@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { API_BASE } from '../services/api.js';
 
 /**
  * Parses a raw SSE message block (between double newlines) into { event, data }.
@@ -49,7 +50,7 @@ export const useChat = (videoId) => {
         const controller = new AbortController();
         abortRef.current = controller;
 
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${API_BASE}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ videoId, question, sessionId }),

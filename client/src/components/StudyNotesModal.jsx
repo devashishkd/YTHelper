@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { API_BASE } from '../services/api.js';
 
 export default function StudyNotesModal({ videoId, videoTitle, onClose }) {
   const [notes, setNotes] = useState('');
@@ -14,7 +15,7 @@ export default function StudyNotesModal({ videoId, videoTitle, onClose }) {
 
     const fetchNotes = async () => {
       try {
-        const response = await fetch('/api/features/study-notes', {
+        const response = await fetch(`${API_BASE}/api/features/study-notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ videoId }),
