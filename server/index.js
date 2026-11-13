@@ -24,8 +24,19 @@ const PORT = process.env.PORT || 5000;
 await connectDB();
 
 // ─── Middleware ───────────────────────────────────────────────────────
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like curl or postman)
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    // Allow configured client, wildcard, or any *.onrender.com domain
+    if (clientUrl === '*' || cleanOrigin === clientUrl || cleanOrigin.endsWith('.onrender.com') || cleanOrigin.includes('localhost')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
